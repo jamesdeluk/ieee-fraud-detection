@@ -1,0 +1,383 @@
+{
+  "dataset": {
+    "name": "IEEE-CIS Fraud Detection",
+    "target": "isFraud",
+    "train_rows": 472432,
+    "holdout_rows": 118108,
+    "test_size": 0.2,
+    "split_strategy": "stratified train_test_split",
+    "random_state": 1423,
+    "train_fraud_rate": 0.034989,
+    "holdout_fraud_rate": 0.034993
+  },
+  "models": {
+    "basic": {
+      "model_type": "LogisticRegression",
+      "features_count": 14,
+      "cv": {
+        "folds": 5,
+        "metrics": {
+          "roc_auc": {
+            "mean": 0.8378604821368876,
+            "std": 0.003465941989389251
+          },
+          "average_precision": {
+            "mean": 0.21599334856524757,
+            "std": 0.00643222611160259
+          },
+          "accuracy": {
+            "mean": 0.7859353261940656,
+            "std": 0.0015628350173359756
+          },
+          "precision": {
+            "mean": 0.11055763566469912,
+            "std": 0.0012690244880874985
+          },
+          "recall": {
+            "mean": 0.7264367816091954,
+            "std": 0.007398350028414032
+          },
+          "f1": {
+            "mean": 0.1919074400447804,
+            "std": 0.002129544440098038
+          }
+        }
+      },
+      "holdout": {
+        "threshold": 0.5,
+        "metrics": {
+          "roc_auc": {
+            "value": 0.8480050165725108
+          },
+          "average_precision": {
+            "value": 0.2282572943121014
+          },
+          "accuracy": {
+            "value": 0.7885325295492261
+          },
+          "precision": {
+            "value": 0.11323065503804046
+          },
+          "recall": {
+            "value": 0.7382046939269296
+          },
+          "f1": {
+            "value": 0.19634468112491152
+          }
+        },
+        "confusion_matrix": {
+          "true_positives": {
+            "count": 3051,
+            "percentage": 2.583
+          },
+          "true_negatives": {
+            "count": 90081,
+            "percentage": 76.27
+          },
+          "false_positives": {
+            "count": 23894,
+            "percentage": 20.231
+          },
+          "false_negatives": {
+            "count": 1082,
+            "percentage": 0.916
+          }
+        },
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "alerts": 86772,
+            "alert_rate": 0.735,
+            "caught_fraud": 4053,
+            "missed_fraud": 80,
+            "false_positives": 82719,
+            "precision": 0.047,
+            "reviews_per_caught_fraud": 21.4,
+            "recall": 0.981,
+            "f1": 0.089
+          },
+          {
+            "threshold": 0.2,
+            "alerts": 70547,
+            "alert_rate": 0.597,
+            "caught_fraud": 3929,
+            "missed_fraud": 204,
+            "false_positives": 66618,
+            "precision": 0.056,
+            "reviews_per_caught_fraud": 18.0,
+            "recall": 0.951,
+            "f1": 0.105
+          },
+          {
+            "threshold": 0.3,
+            "alerts": 53432,
+            "alert_rate": 0.452,
+            "caught_fraud": 3751,
+            "missed_fraud": 382,
+            "false_positives": 49681,
+            "precision": 0.07,
+            "reviews_per_caught_fraud": 14.2,
+            "recall": 0.908,
+            "f1": 0.13
+          },
+          {
+            "threshold": 0.4,
+            "alerts": 39459,
+            "alert_rate": 0.334,
+            "caught_fraud": 3473,
+            "missed_fraud": 660,
+            "false_positives": 35986,
+            "precision": 0.088,
+            "reviews_per_caught_fraud": 11.4,
+            "recall": 0.84,
+            "f1": 0.159
+          },
+          {
+            "threshold": 0.5,
+            "alerts": 26945,
+            "alert_rate": 0.228,
+            "caught_fraud": 3051,
+            "missed_fraud": 1082,
+            "false_positives": 23894,
+            "precision": 0.113,
+            "reviews_per_caught_fraud": 8.8,
+            "recall": 0.738,
+            "f1": 0.196
+          },
+          {
+            "threshold": 0.6,
+            "alerts": 18319,
+            "alert_rate": 0.155,
+            "caught_fraud": 2649,
+            "missed_fraud": 1484,
+            "false_positives": 15670,
+            "precision": 0.145,
+            "reviews_per_caught_fraud": 6.9,
+            "recall": 0.641,
+            "f1": 0.236
+          },
+          {
+            "threshold": 0.7,
+            "alerts": 12048,
+            "alert_rate": 0.102,
+            "caught_fraud": 2186,
+            "missed_fraud": 1947,
+            "false_positives": 9862,
+            "precision": 0.181,
+            "reviews_per_caught_fraud": 5.5,
+            "recall": 0.529,
+            "f1": 0.27
+          },
+          {
+            "threshold": 0.8,
+            "alerts": 7363,
+            "alert_rate": 0.062,
+            "caught_fraud": 1711,
+            "missed_fraud": 2422,
+            "false_positives": 5652,
+            "precision": 0.232,
+            "reviews_per_caught_fraud": 4.3,
+            "recall": 0.414,
+            "f1": 0.298
+          },
+          {
+            "threshold": 0.9,
+            "alerts": 2743,
+            "alert_rate": 0.023,
+            "caught_fraud": 926,
+            "missed_fraud": 3207,
+            "false_positives": 1817,
+            "precision": 0.338,
+            "reviews_per_caught_fraud": 3.0,
+            "recall": 0.224,
+            "f1": 0.269
+          }
+        ]
+      }
+    },
+    "full": {
+      "model_type": "XGBClassifier",
+      "features_count": 391,
+      "cv": {
+        "folds": 3,
+        "metrics": {
+          "roc_auc": {
+            "mean": 0.9595401824486228,
+            "std": 0.0010159222502373493
+          },
+          "average_precision": {
+            "mean": 0.8097619263612605,
+            "std": 0.0021754177169169718
+          },
+          "accuracy": {
+            "mean": 0.9840273310606963,
+            "std": 6.332377625483332e-05
+          },
+          "precision": {
+            "mean": 0.7981208024496474,
+            "std": 0.006534269177299619
+          },
+          "recall": {
+            "mean": 0.7277071990320629,
+            "std": 0.007897459854478988
+          },
+          "f1": {
+            "mean": 0.7612207717878539,
+            "std": 0.0013826343511850153
+          }
+        }
+      },
+      "holdout": {
+        "threshold": 0.5,
+        "metrics": {
+          "roc_auc": {
+            "value": 0.9694590615489674
+          },
+          "average_precision": {
+            "value": 0.846400273150945
+          },
+          "accuracy": {
+            "value": 0.9842178345243336
+          },
+          "precision": {
+            "value": 0.7686478806535638
+          },
+          "recall": {
+            "value": 0.7853859182192112
+          },
+          "f1": {
+            "value": 0.7769267592149354
+          }
+        },
+        "confusion_matrix": {
+          "true_positives": {
+            "count": 3246,
+            "percentage": 2.748
+          },
+          "true_negatives": {
+            "count": 112998,
+            "percentage": 95.673
+          },
+          "false_positives": {
+            "count": 977,
+            "percentage": 0.827
+          },
+          "false_negatives": {
+            "count": 887,
+            "percentage": 0.751
+          }
+        },
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "alerts": 8625,
+            "alert_rate": 0.073,
+            "caught_fraud": 3638,
+            "missed_fraud": 495,
+            "false_positives": 4987,
+            "precision": 0.422,
+            "reviews_per_caught_fraud": 2.4,
+            "recall": 0.88,
+            "f1": 0.57
+          },
+          {
+            "threshold": 0.2,
+            "alerts": 6357,
+            "alert_rate": 0.054,
+            "caught_fraud": 3513,
+            "missed_fraud": 620,
+            "false_positives": 2844,
+            "precision": 0.553,
+            "reviews_per_caught_fraud": 1.8,
+            "recall": 0.85,
+            "f1": 0.67
+          },
+          {
+            "threshold": 0.3,
+            "alerts": 5288,
+            "alert_rate": 0.045,
+            "caught_fraud": 3421,
+            "missed_fraud": 712,
+            "false_positives": 1867,
+            "precision": 0.647,
+            "reviews_per_caught_fraud": 1.5,
+            "recall": 0.828,
+            "f1": 0.726
+          },
+          {
+            "threshold": 0.4,
+            "alerts": 4687,
+            "alert_rate": 0.04,
+            "caught_fraud": 3338,
+            "missed_fraud": 795,
+            "false_positives": 1349,
+            "precision": 0.712,
+            "reviews_per_caught_fraud": 1.4,
+            "recall": 0.808,
+            "f1": 0.757
+          },
+          {
+            "threshold": 0.5,
+            "alerts": 4223,
+            "alert_rate": 0.036,
+            "caught_fraud": 3246,
+            "missed_fraud": 887,
+            "false_positives": 977,
+            "precision": 0.769,
+            "reviews_per_caught_fraud": 1.3,
+            "recall": 0.785,
+            "f1": 0.777
+          },
+          {
+            "threshold": 0.6,
+            "alerts": 3870,
+            "alert_rate": 0.033,
+            "caught_fraud": 3161,
+            "missed_fraud": 972,
+            "false_positives": 709,
+            "precision": 0.817,
+            "reviews_per_caught_fraud": 1.2,
+            "recall": 0.765,
+            "f1": 0.79
+          },
+          {
+            "threshold": 0.7,
+            "alerts": 3541,
+            "alert_rate": 0.03,
+            "caught_fraud": 3060,
+            "missed_fraud": 1073,
+            "false_positives": 481,
+            "precision": 0.864,
+            "reviews_per_caught_fraud": 1.2,
+            "recall": 0.74,
+            "f1": 0.797
+          },
+          {
+            "threshold": 0.8,
+            "alerts": 3281,
+            "alert_rate": 0.028,
+            "caught_fraud": 2948,
+            "missed_fraud": 1185,
+            "false_positives": 333,
+            "precision": 0.899,
+            "reviews_per_caught_fraud": 1.1,
+            "recall": 0.713,
+            "f1": 0.795
+          },
+          {
+            "threshold": 0.9,
+            "alerts": 2934,
+            "alert_rate": 0.025,
+            "caught_fraud": 2757,
+            "missed_fraud": 1376,
+            "false_positives": 177,
+            "precision": 0.94,
+            "reviews_per_caught_fraud": 1.1,
+            "recall": 0.667,
+            "f1": 0.78
+          }
+        ]
+      }
+    }
+  }
+}
