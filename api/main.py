@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -33,6 +34,7 @@ TARGET_COLUMN = "isFraud"
 TRANSACTION_ID_COLUMN = "TransactionID"
 TRANSACTION_TIME_COLUMN = "TransactionDT"
 DEFAULT_THRESHOLD = 0.5
+DEFAULT_CORS_ORIGINS = ("http://localhost:5173", "http://127.0.0.1:5173")
 
 
 class BasicPredictionRequest(BaseModel):
@@ -57,9 +59,24 @@ app = FastAPI(
     version="0.1.0",
 )
 
+
+def get_cors_origins() -> list[str]:
+    """Reads deployment CORS origins while keeping local development working."""
+
+    configured_origins = os.getenv("CORS_ORIGINS")
+    if not configured_origins:
+        return list(DEFAULT_CORS_ORIGINS)
+
+    return [
+        origin.strip()
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
