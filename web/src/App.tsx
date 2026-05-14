@@ -516,21 +516,44 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
     },
   ];
 
+  const identityFeatureNotes = [
+    {
+      title: "id_01-id_38",
+      body: "Masked identity and verification signals tied to the transaction when an identity row is available.",
+    },
+    {
+      title: "DeviceType",
+      body: "Device category for the transaction, such as desktop or mobile, with missing values retained as a model signal.",
+    },
+    {
+      title: "DeviceInfo",
+      body: "Device, browser, operating-system, or user-agent style values, including high-cardinality strings such as Windows, iOS Device, MacOS, and phone build names.",
+    },
+    {
+      title: "has_identity",
+      body: "Explicit flag showing whether the transaction joined to the identity table, so identity coverage is visible rather than hidden inside missing values.",
+    },
+  ];
+
+  const identityFeatureCount = 41;
+
   return (
     <div className="view-grid">
       <section className="panel about-columns">
         <article>
           <h3>What the app demonstrates</h3>
           <p>
-            The workflow separates model development from final evaluation, preserves a 20% holdout set, exposes model
-            confidence rather than a binary answer alone, and shows threshold trade-offs in operational terms.
+            The dashboard shows how fraud risk changes as richer transaction and identity signals are added. It compares
+            a compact baseline model with a full model, then lets you inspect review thresholds, prediction confidence,
+            and example transactions.
           </p>
         </article>
         <article>
-          <h3>Why there are two models</h3>
+          <h3>How the models were built</h3>
           <p>
-            The basic model uses a compact, explainable feature set suitable for a custom form. The full model uses the
-            broader engineered dataset to show the performance gain from richer signals.
+            The notebook joins the source data, builds numeric and categorical preprocessing pipelines,
+            compares a compact logistic-regression baseline with an XGBoost model, evaluates on a stratified holdout
+            split, then refits the deployable models on all labelled training rows.
           </p>
         </article>
         <article>
@@ -543,7 +566,7 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
       </section>
 
       <section className="panel data-intro">
-        <h2>Dataset structure</h2>
+        <h2>Dataset</h2>
         <p>
           The app uses the{" "}
           <a href="https://www.kaggle.com/competitions/ieee-fraud-detection" target="_blank" rel="noreferrer">
@@ -563,7 +586,7 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
       <section className="panel column-guide">
         <div className="section-heading">
           <div>
-            <h2>14 basic features</h2>
+            <h2>{formatNumber(metrics.models.basic.features_count)} basic features</h2>
           </div>
         </div>
         <div className="column-guide-grid">
@@ -579,12 +602,29 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
       <section className="panel column-guide">
         <div className="section-heading">
           <div>
-            <h2>391 full features</h2>
-            <p>All 14 basic features, plus</p>
+            <h2>{formatNumber(metrics.models.full.features_count)} full features</h2>
+            <p>All {formatNumber(metrics.models.basic.features_count)} basic features, plus:</p>
           </div>
         </div>
         <div className="column-guide-grid">
           {fullFeatureNotes.map((note) => (
+            <article key={note.title}>
+              <h3>{note.title}</h3>
+              <p>{note.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel column-guide identity-guide">
+        <div className="section-heading">
+          <div>
+            <h2>{formatNumber(identityFeatureCount)} identity features</h2>
+            <p>Joined from the identity table when available</p>
+          </div>
+        </div>
+        <div className="column-guide-grid">
+          {identityFeatureNotes.map((note) => (
             <article key={note.title}>
               <h3>{note.title}</h3>
               <p>{note.body}</p>

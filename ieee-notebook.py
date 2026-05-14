@@ -13,6 +13,7 @@ with app.setup:
     from pathlib import Path
 
     from sklearn.preprocessing import StandardScaler
+    from sklearn.base import clone
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
     from sklearn.compose import ColumnTransformer
@@ -299,40 +300,45 @@ def _():
 
 
 @app.cell
-def _(train_identity, train_transaction):
+def define_column_groups(train):
     transactions_target = "isFraud"
     transactions_display_columns = [
         _c
         for _c in ["TransactionID", "TransactionDT"]
-        if _c in train_transaction.columns
+        if _c in train.columns
     ]
-    identity_columns = [_c for _c in train_identity.columns if _c not in transactions_display_columns]
     transactions_excluded_columns = [transactions_target] + transactions_display_columns
     transactions_features = [
         _c
-        for _c in train_transaction.columns
+        for _c in train.columns
         if _c not in transactions_excluded_columns
     ]
 
     transactions_count_features = [
         _c
-        for _c in train_transaction.columns
+        for _c in train.columns
         if _c.startswith("C") and _c[1:].isdigit()
     ]
     transactions_timedelta_features = [
         _c
-        for _c in train_transaction.columns
+        for _c in train.columns
         if _c.startswith("D") and _c[1:].isdigit()
     ]
     transactions_match_features = [
         _c
-        for _c in train_transaction.columns
+        for _c in train.columns
         if _c.startswith("M") and _c[1:].isdigit()
     ]
     transactions_vesta_features = [
         _c
-        for _c in train_transaction.columns
+        for _c in train.columns
         if _c.startswith("V") and _c[1:].isdigit()
+    ]
+    identity_features = [
+        _c
+        for _c in train.columns
+        if _c.startswith("id_")
+        or _c in ["DeviceType", "DeviceInfo", "has_identity"]
     ]
 
     transactions_basic_features = [
@@ -344,6 +350,7 @@ def _(train_identity, train_transaction):
             + transactions_timedelta_features
             + transactions_match_features
             + transactions_vesta_features
+            + identity_features
         )
     ]
 
@@ -365,15 +372,28 @@ def _(train_identity, train_transaction):
         for _c in transactions_basic_features
         if _c not in transactions_basic_categorical_columns
     ]
+    identity_categorical_columns = [
+        _c
+        for _c in identity_features
+        if not pd.api.types.is_numeric_dtype(train[_c])
+    ]
+    identity_numeric_columns = [
+        _c
+        for _c in identity_features
+        if _c not in identity_categorical_columns
+    ]
 
     transactions_categorical_columns = (
-        transactions_basic_categorical_columns + transactions_match_features
+        transactions_basic_categorical_columns
+        + transactions_match_features
+        + identity_categorical_columns
     )
     transactions_numeric_columns = (
         transactions_basic_numeric_columns
         + transactions_count_features
         + transactions_timedelta_features
         + transactions_vesta_features
+        + identity_numeric_columns
     )
     return (
         transactions_basic_categorical_columns,
@@ -396,30 +416,42 @@ def _():
 
 
 @app.cell
-def _(
-    train_transaction,
+def split_training_data(
+    train,
     transactions_basic_features,
     transactions_display_columns,
     transactions_features,
     transactions_target,
 ):
-    X_train_transaction = train_transaction[transactions_features]
-    y_train_transaction = train_transaction[transactions_target]
+    X = train[transactions_features]
+    y = train[transactions_target]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X_train_transaction,
-        y_train_transaction,
+        X,
+        y,
         test_size=0.2,
         random_state=1423,
-        stratify=y_train_transaction,
+        stratify=y,
     )
 
     X_train_basic = X_train[transactions_basic_features]
     X_test_basic = X_test[transactions_basic_features]
-    X_test_display = train_transaction.loc[
+    X_basic = X[transactions_basic_features]
+    X_test_display = train.loc[
         X_test.index, transactions_display_columns
     ]
-    return X_test, X_test_basic, X_test_display, y_test, y_train
+    return (
+        X,
+        X_basic,
+        X_test,
+        X_test_basic,
+        X_test_display,
+        X_train,
+        X_train_basic,
+        y,
+        y_test,
+        y_train,
+    )
 
 
 @app.function
@@ -477,7 +509,7 @@ def _(
         transactions_numeric_columns,
         transactions_categorical_columns,
     )
-    return
+    return preprocessor, preprocessor_basic
 
 
 @app.cell(hide_code=True)
@@ -497,47 +529,47 @@ def _():
 
 
 @app.cell
-def _():
-    # basic_pipeline = Pipeline(
-    #     steps=[
-    #         ("preprocessor", preprocessor_basic),
-    #         (
-    #             "classifier",
-    #             LogisticRegression(max_iter=100000, class_weight="balanced"),
-    #         ),
-    #     ]
-    # )
-    return
+def _(preprocessor_basic):
+    basic_pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor_basic),
+            (
+                "classifier",
+                LogisticRegression(max_iter=100000, class_weight="balanced"),
+            ),
+        ]
+    )
+    return (basic_pipeline,)
 
 
 @app.cell
 def _():
-    # basic_cv = StratifiedKFold(
-    #     n_splits=5,
-    #     shuffle=True,
-    #     random_state=1423,
-    # )
-    return
+    basic_cv = StratifiedKFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=1423,
+    )
+    return (basic_cv,)
 
 
 @app.cell
-def _():
-    # basic_cv_results = cross_validate(
-    #     basic_pipeline,
-    #     X_train_basic,
-    #     y_train,
-    #     cv=basic_cv,
-    #     scoring={
-    #         "roc_auc": "roc_auc",
-    #         "average_precision": "average_precision",
-    #         "accuracy": "accuracy",
-    #         "precision": "precision",
-    #         "recall": "recall",
-    #         "f1": "f1",
-    #     },
-    #     n_jobs=-1,
-    # )
-    return
+def _(X_train_basic, basic_cv, basic_pipeline, y_train):
+    basic_cv_results = cross_validate(
+        basic_pipeline,
+        X_train_basic,
+        y_train,
+        cv=basic_cv,
+        scoring={
+            "roc_auc": "roc_auc",
+            "average_precision": "average_precision",
+            "accuracy": "accuracy",
+            "precision": "precision",
+            "recall": "recall",
+            "f1": "f1",
+        },
+        n_jobs=-1,
+    )
+    return (basic_cv_results,)
 
 
 @app.cell(hide_code=True)
@@ -576,11 +608,8 @@ def _(basic_cv_results):
 
 
 @app.cell
-def _():
-    # fitted_basic_pipeline = basic_pipeline.fit(X_train_basic, y_train)
-    # joblib.dump(fitted_basic_pipeline, model_dir / "basic.joblib")
-
-    fitted_basic_pipeline = joblib.load(model_dir / "basic.joblib")
+def _(X_train_basic, basic_pipeline, y_train):
+    fitted_basic_pipeline = basic_pipeline.fit(X_train_basic, y_train)
     return (fitted_basic_pipeline,)
 
 
@@ -667,60 +696,60 @@ def _():
 
 
 @app.cell
-def _():
-    # # XGBoost can use a positive-class weight so fraud examples matter despite being much rarer than non-fraud examples.
-    # xgboost_negative_count = (y_train == 0).sum()
-    # xgboost_positive_count = (y_train == 1).sum()
-    # xgboost_scale_pos_weight = xgboost_negative_count / xgboost_positive_count
+def _(preprocessor, y_train):
+    # XGBoost can use a positive-class weight so fraud examples matter despite being much rarer than non-fraud examples.
+    xgboost_negative_count = (y_train == 0).sum()
+    xgboost_positive_count = (y_train == 1).sum()
+    xgboost_scale_pos_weight = xgboost_negative_count / xgboost_positive_count
 
-    # full_pipeline = Pipeline(
-    #     steps=[
-    #         ("preprocessor", preprocessor),
-    #         (
-    #             "classifier",
-    #             XGBClassifier(
-    #                 n_estimators=5000,
-    #                 objective="binary:logistic",
-    #                 eval_metric="aucpr",
-    #                 tree_method="hist",
-    #                 n_jobs=-1,
-    #                 random_state=1423,
-    #                 scale_pos_weight=xgboost_scale_pos_weight,
-    #             ),
-    #         ),
-    #     ]
-    # )
-    return
-
-
-@app.cell
-def _():
-    # full_cv = StratifiedKFold(
-    #     n_splits=3,
-    #     shuffle=True,
-    #     random_state=1423,
-    # )
-    return
+    full_pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            (
+                "classifier",
+                XGBClassifier(
+                    n_estimators=5000,
+                    objective="binary:logistic",
+                    eval_metric="aucpr",
+                    tree_method="hist",
+                    n_jobs=-1,
+                    random_state=1423,
+                    scale_pos_weight=xgboost_scale_pos_weight,
+                ),
+            ),
+        ]
+    )
+    return (full_pipeline,)
 
 
 @app.cell
 def _():
-    # full_cv_results = cross_validate(
-    #     full_pipeline,
-    #     X_train,
-    #     y_train,
-    #     cv=full_cv,
-    #     scoring={
-    #         "roc_auc": "roc_auc",
-    #         "average_precision": "average_precision",
-    #         "accuracy": "accuracy",
-    #         "precision": "precision",
-    #         "recall": "recall",
-    #         "f1": "f1",
-    #     },
-    #     n_jobs=1,
-    # )
-    return
+    full_cv = StratifiedKFold(
+        n_splits=3,
+        shuffle=True,
+        random_state=1423,
+    )
+    return (full_cv,)
+
+
+@app.cell
+def _(X_train, full_cv, full_pipeline, y_train):
+    full_cv_results = cross_validate(
+        full_pipeline,
+        X_train,
+        y_train,
+        cv=full_cv,
+        scoring={
+            "roc_auc": "roc_auc",
+            "average_precision": "average_precision",
+            "accuracy": "accuracy",
+            "precision": "precision",
+            "recall": "recall",
+            "f1": "f1",
+        },
+        n_jobs=1,
+    )
+    return (full_cv_results,)
 
 
 @app.cell(hide_code=True)
@@ -759,11 +788,8 @@ def _(full_cv_results):
 
 
 @app.cell
-def _():
-    # fitted_full_pipeline = full_pipeline.fit(X_train, y_train)
-    # joblib.dump(fitted_full_pipeline, model_dir / "full.joblib")
-
-    fitted_full_pipeline = joblib.load(model_dir / "full.joblib")
+def _(X_train, full_pipeline, y_train):
+    fitted_full_pipeline = full_pipeline.fit(X_train, y_train)
     return (fitted_full_pipeline,)
 
 
@@ -1232,7 +1258,7 @@ def _():
 
 @app.function
 def make_feature_metadata(
-    train_transaction, feature_columns, numeric_columns, categorical_columns
+    train_data, feature_columns, numeric_columns, categorical_columns
 ):
     # Builds the feature contract used by the website and prediction API.
     metadata = []
@@ -1240,7 +1266,7 @@ def make_feature_metadata(
     categorical_column_set = set(categorical_columns)
 
     for column in feature_columns:
-        column_data = train_transaction[column]
+        column_data = train_data[column]
         column_metadata = {
             "name": column,
             "dtype": str(column_data.dtype),
@@ -1281,7 +1307,7 @@ def make_feature_metadata(
 
 @app.cell
 def _(
-    train_transaction,
+    train,
     transactions_basic_categorical_columns,
     transactions_basic_features,
     transactions_basic_numeric_columns,
@@ -1293,7 +1319,7 @@ def _(
         "numeric_features": list(transactions_basic_numeric_columns),
         "categorical_features": list(transactions_basic_categorical_columns),
         "features": make_feature_metadata(
-            train_transaction,
+            train,
             transactions_basic_features,
             transactions_basic_numeric_columns,
             transactions_basic_categorical_columns,
@@ -1304,7 +1330,7 @@ def _(
 
 @app.cell
 def _(
-    train_transaction,
+    train,
     transactions_categorical_columns,
     transactions_features,
     transactions_numeric_columns,
@@ -1316,7 +1342,7 @@ def _(
         "numeric_features": list(transactions_numeric_columns),
         "categorical_features": list(transactions_categorical_columns),
         "features": make_feature_metadata(
-            train_transaction,
+            train,
             transactions_features,
             transactions_numeric_columns,
             transactions_categorical_columns,
@@ -1339,6 +1365,7 @@ def _(
     full_threshold_summary,
     transactions_basic_features,
     transactions_features,
+    y,
     y_test,
     y_train,
 ):
@@ -1346,6 +1373,7 @@ def _(
         "dataset": {
             "name": "IEEE-CIS Fraud Detection",
             "target": "isFraud",
+            "full_train_rows": json_safe_value(len(y)),
             "train_rows": json_safe_value(len(y_train)),
             "holdout_rows": json_safe_value(len(y_test)),
             "test_size": 0.2,
@@ -1397,7 +1425,32 @@ def _(
 
 
 @app.cell
-def _(basic_features_metadata, full_features_metadata, model_metrics):
+def export_final_model_artifacts(X, X_basic, basic_pipeline, full_pipeline, y):
+    # Refit deployable models on every labelled training row after holdout metrics have been captured.
+    model_dir.mkdir(parents=True, exist_ok=True)
+    full_train_scale_pos_weight = (y == 0).sum() / (y == 1).sum()
+    final_full_pipeline = clone(full_pipeline).set_params(
+        classifier__scale_pos_weight=full_train_scale_pos_weight
+    )
+    fitted_basic_full_train_pipeline = clone(basic_pipeline).fit(X_basic, y)
+    fitted_full_train_pipeline = final_full_pipeline.fit(X, y)
+
+    joblib.dump(fitted_basic_full_train_pipeline, model_dir / "basic.joblib")
+    joblib.dump(fitted_full_train_pipeline, model_dir / "full.joblib")
+
+    exported_model_files = [
+        model_dir / "basic.joblib",
+        model_dir / "full.joblib",
+    ]
+    return
+
+
+@app.cell
+def export_metadata_artifacts(
+    basic_features_metadata,
+    full_features_metadata,
+    model_metrics,
+):
     model_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
 
