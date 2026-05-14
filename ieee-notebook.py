@@ -565,8 +565,7 @@ def _(X_train_basic, basic_pipeline, y_train):
 
 
 @app.cell
-def _(fitted_basic_pipeline, model_dir):
-    # Exports the fitted basic pipeline used by the API for live custom checks.
+def _(fitted_basic_pipeline):
     joblib.dump(fitted_basic_pipeline, model_dir / "basic.joblib")
     return
 
