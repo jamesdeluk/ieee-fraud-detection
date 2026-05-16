@@ -568,6 +568,12 @@ button {
 .breakdown-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 0;
+}
+
+.breakdown-table-mobile {
+  display: none;
+  table-layout: fixed;
 }
 
 .breakdown-table th,
@@ -575,6 +581,7 @@ button {
   padding: 9px 10px;
   border-bottom: 1px solid var(--line);
   text-align: left;
+  white-space: normal;
 }
 
 .breakdown-table tr:last-child th,
@@ -1039,6 +1046,42 @@ button:disabled {
 
   .nav-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .breakdown-table-desktop {
+    display: none;
+  }
+
+  .breakdown-table-mobile {
+    display: table;
+  }
+
+  .breakdown-table-mobile th:first-child,
+  .breakdown-table-mobile td:first-child {
+    width: 44%;
+  }
+
+  .breakdown-table-mobile th:not(:first-child),
+  .breakdown-table-mobile td:not(:first-child) {
+    width: 28%;
+  }
+
+  .breakdown-table-mobile tbody td:not(:first-child) {
+    text-align: right;
+  }
+
+  .breakdown-table-mobile thead .breakdown-label {
+    justify-content: center;
+  }
+
+  .breakdown-table th,
+  .breakdown-table td {
+    padding: 8px;
+  }
+
+  .breakdown-value {
+    flex-wrap: wrap;
+    gap: 4px 8px;
   }
 
   .overview-control {

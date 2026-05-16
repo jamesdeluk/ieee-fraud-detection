@@ -829,10 +829,11 @@ function TransactionBreakdownStats({ result }: { result: TransactionsResponse })
       notFraud: result.breakdown.full_prediction.not_fraud,
     },
   ];
+  const rows = columns;
 
   return (
     <section className="transaction-breakdown-card">
-      <table className="breakdown-table">
+      <table className="breakdown-table breakdown-table-desktop">
         <thead>
           <tr>
             <th>Breakdown</th>
@@ -854,6 +855,25 @@ function TransactionBreakdownStats({ result }: { result: TransactionsResponse })
               <td key={column.label}><BreakdownValue count={column.notFraud} total={result.total} /></td>
             ))}
           </tr>
+        </tbody>
+      </table>
+
+      <table className="breakdown-table breakdown-table-mobile">
+        <thead>
+          <tr>
+            <th>Breakdown</th>
+            <th><BreakdownLabel label="Fraud" tone="danger" /></th>
+            <th><BreakdownLabel label="Not fraud" tone="safe" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <th scope="row">{row.label}</th>
+              <td><BreakdownValue count={row.fraud} total={result.total} /></td>
+              <td><BreakdownValue count={row.notFraud} total={result.total} /></td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </section>
