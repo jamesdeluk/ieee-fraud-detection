@@ -178,7 +178,12 @@ function App() {
           )}
         </header>
 
-        {loading && <StatePanel title="Loading console" body="Reading model artefacts and holdout rows." />}
+        {loading && (
+          <StatePanel
+            title="Loading console"
+            body="Reading model artefacts and holdout rows. This may take up to a minute."
+          />
+        )}
         {error && <StatePanel title="API connection issue" body={error} tone="danger" />}
 
         {appReady && activeView === "overview" && (
