@@ -4,13 +4,14 @@ __generated_with = "0.23.6"
 app = marimo.App(width="full")
 
 with app.setup:
-    import json
     import marimo as mo
+    import sys
+    import json
+    from pathlib import Path
     import pandas as pd
     import numpy as np
     import plotly.express as px
     import plotly.graph_objects as go
-    from pathlib import Path
 
     from sklearn.preprocessing import StandardScaler
     from sklearn.base import clone
@@ -136,6 +137,12 @@ def convert_categorical_to_string(data):
     return data.astype("string").fillna("missing")
 
 
+@app.cell
+def _():
+    setattr(sys.modules["__main__"], "convert_categorical_to_string", convert_categorical_to_string)
+    return
+
+
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
@@ -191,103 +198,120 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _():
-    # _target = "isFraud"
-    # _columns = train_transaction.columns
-    # _numeric_columns = train_transaction.select_dtypes(include="number").columns
-    # _feature_columns = [_column for _column in _columns if _column != _target]
+def _(train):
+    _target = "isFraud"
+    _columns = train.columns
+    _numeric_columns = train.select_dtypes(include="number").columns
+    _feature_columns = [_column for _column in _columns if _column != _target]
 
-    # _mode_frame = train_transaction.mode(dropna=True)
+    _mode_frame = train.mode(dropna=True)
 
-    # _analysis = pd.DataFrame({
-    #     "column": _columns,
-    #     "dtype": train_transaction.dtypes.astype(str).values,
-    #     "unique_values": train_transaction.nunique(dropna=False).values,
-    #     "missing_pct": train_transaction.isna().mean().mul(100).round(1).values,
-    #     "sample_values": [
-    #         train_transaction[_column]
-    #         .dropna()
-    #         .astype("string")
-    #         .drop_duplicates()
-    #         .head(10)
-    #         .tolist()
-    #         for _column in train_transaction.columns
-    #     ],
+    analysis = pd.DataFrame({
+        "column": _columns,
+        "dtype": train.dtypes.astype(str).values,
+        "unique_values": train.nunique(dropna=False).values,
+        "missing_pct": train.isna().mean().mul(100).round(1).values,
+        "sample_values": [
+            train[_column]
+            .dropna()
+            .astype("string")
+            .drop_duplicates()
+            .head(10)
+            .tolist()
+            for _column in train.columns
+        ],
 
-    #     # Mode is useful for spotting dominant categories or near-constant columns.
-    #     "mode": [
-    #         _mode_frame[_column].iloc[0] if _column in _mode_frame and not _mode_frame[_column].dropna().empty else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "mode_pct": [
-    #         (train_transaction[_column].value_counts(dropna=True, normalize=True).iloc[0] * 100).round(1)
-    #         if not train_transaction[_column].value_counts(dropna=True).empty
-    #         else pd.NA
-    #         for _column in _columns
-    #     ],
+        # Mode is useful for spotting dominant categories or near-constant columns.
+        "mode": [
+            _mode_frame[_column].iloc[0] if _column in _mode_frame and not _mode_frame[_column].dropna().empty else pd.NA
+            for _column in _columns
+        ],
+        "mode_pct": [
+            (train[_column].value_counts(dropna=True, normalize=True).iloc[0] * 100).round(1)
+            if not train[_column].value_counts(dropna=True).empty
+            else pd.NA
+            for _column in _columns
+        ],
 
-    #     # Numeric ranges only make sense for genuinely numeric columns.
-    #     "min": [
-    #         train_transaction[_column].min() if _column in _numeric_columns else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "max": [
-    #         train_transaction[_column].max() if _column in _numeric_columns else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "mean": [
-    #         train_transaction[_column].mean().round(1) if _column in _numeric_columns else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "median": [
-    #         train_transaction[_column].median().round(1) if _column in _numeric_columns else pd.NA
-    #         for _column in _columns
-    #     ],
+        # Numeric ranges only make sense for genuinely numeric columns.
+        "min": [
+            train[_column].min() if _column in _numeric_columns else pd.NA
+            for _column in _columns
+        ],
+        "max": [
+            train[_column].max() if _column in _numeric_columns else pd.NA
+            for _column in _columns
+        ],
+        "mean": [
+            train[_column].mean().round(1) if _column in _numeric_columns else pd.NA
+            for _column in _columns
+        ],
+        "median": [
+            train[_column].median().round(1) if _column in _numeric_columns else pd.NA
+            for _column in _columns
+        ],
 
-    #     # Missingness can itself be predictive in this dataset.
-    #     "fraud_rate_when_present": [
-    #         train_transaction.loc[train_transaction[_column].notna(), _target].mean().round(3)
-    #         if _column != _target
-    #         else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "fraud_rate_when_missing": [
-    #         train_transaction.loc[train_transaction[_column].isna(), _target].mean().round(3)
-    #         if _column != _target and train_transaction[_column].isna().any()
-    #         else pd.NA
-    #         for _column in _columns
-    #     ],
+        # Missingness can itself be predictive in this dataset.
+        "fraud_rate_when_present": [
+            train.loc[train[_column].notna(), _target].mean().round(3)
+            if _column != _target
+            else pd.NA
+            for _column in _columns
+        ],
+        "fraud_rate_when_missing": [
+            train.loc[train[_column].isna(), _target].mean().round(3)
+            if _column != _target and train[_column].isna().any()
+            else pd.NA
+            for _column in _columns
+        ],
 
-    #     # Numeric gap gives a quick signal check for anonymous continuous/count features.
-    #     "non_fraud_median": [
-    #         train_transaction.loc[train_transaction[_target] == 0, _column].median().round(3)
-    #         if _column in _numeric_columns and _column != _target
-    #         else pd.NA
-    #         for _column in _columns
-    #     ],
-    #     "fraud_median": [
-    #         train_transaction.loc[train_transaction[_target] == 1, _column].median().round(3)
-    #         if _column in _numeric_columns and _column != _target
-    #         else pd.NA
-    #         for _column in _columns
-    #     ],
-    # })
+        # Numeric gap gives a quick signal check for anonymous continuous/count features.
+        "non_fraud_median": [
+            train.loc[train[_target] == 0, _column].median().round(3)
+            if _column in _numeric_columns and _column != _target
+            else pd.NA
+            for _column in _columns
+        ],
+        "fraud_median": [
+            train.loc[train[_target] == 1, _column].median().round(3)
+            if _column in _numeric_columns and _column != _target
+            else pd.NA
+            for _column in _columns
+        ],
+    })
 
-    # _analysis["missing_fraud_gap"] = (
-    #     pd.to_numeric(_analysis["fraud_rate_when_missing"], errors="coerce")
-    #     - pd.to_numeric(_analysis["fraud_rate_when_present"], errors="coerce")
-    # ).abs().round(3)
+    analysis["missing_fraud_gap"] = (
+        pd.to_numeric(analysis["fraud_rate_when_missing"], errors="coerce")
+        - pd.to_numeric(analysis["fraud_rate_when_present"], errors="coerce")
+    ).abs().round(3)
 
-    # _analysis["median_fraud_gap"] = (
-    #     pd.to_numeric(_analysis["fraud_median"], errors="coerce")
-    #     - pd.to_numeric(_analysis["non_fraud_median"], errors="coerce")
-    # ).abs().round(3)
+    analysis["median_fraud_gap"] = (
+        pd.to_numeric(analysis["fraud_median"], errors="coerce")
+        - pd.to_numeric(analysis["non_fraud_median"], errors="coerce")
+    ).abs().round(3)
 
-    # # _analysis.sort_values(
-    #     # ["missing_fraud_gap", "median_fraud_gap", "unique_values"],
-    #     # ascending=[False, False, True],
-    # # )
-    # _analysis
+    # analysis.sort_values(
+        # ["missing_fraud_gap", "median_fraud_gap", "unique_values"],
+        # ascending=[False, False, True],
+    # )
+    return (analysis,)
+
+
+@app.cell
+def _(analysis):
+    analysis
+    return
+
+
+@app.cell
+def _(analysis):
+    analysis[analysis['column'].isin(['TransactionAmt', 'card1', 'card4', 'addr1', 'dist1', 'P_emaildomain', 'C1', 'D8', 'M4', 'V313', 'id02'])]
+    return
+
+
+@app.cell
+def _(analysis):
+    analysis.columns
     return
 
 
@@ -299,7 +323,7 @@ def _():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def define_column_groups(train):
     transactions_target = "isFraud"
     transactions_display_columns = [
@@ -610,6 +634,9 @@ def _(basic_cv_results):
 @app.cell
 def _(X_train_basic, basic_pipeline, y_train):
     fitted_basic_pipeline = basic_pipeline.fit(X_train_basic, y_train)
+    # joblib.dump(fitted_basic_pipeline, model_dir / "basic.joblib")
+
+    # fitted_basic_pipeline = joblib.load(model_dir / "basic.joblib")
     return (fitted_basic_pipeline,)
 
 
@@ -790,6 +817,9 @@ def _(full_cv_results):
 @app.cell
 def _(X_train, full_pipeline, y_train):
     fitted_full_pipeline = full_pipeline.fit(X_train, y_train)
+    # joblib.dump(fitted_full_pipeline, model_dir / "full.joblib")
+
+    # fitted_full_pipeline = joblib.load(model_dir / "full.joblib")
     return (fitted_full_pipeline,)
 
 
@@ -1024,12 +1054,12 @@ def _(fitted_full_pipeline):
     ].round(3)
 
     xgboost_feature_importance
-    return (xgboost_feature_importance,)
+    return feature_names, xgboost_feature_importance
 
 
 @app.cell(hide_code=True)
 def _(xgboost_feature_importance):
-    _top_n = 50
+    _top_n = 25
 
     _xgboost_feature_importance_ranked = xgboost_feature_importance.sort_values(
         "importance", ascending=False
@@ -1065,6 +1095,7 @@ def _(xgboost_feature_importance):
         ],
         layout=go.Layout(
             title=f"Top {_top_n} XGBoost feature importances",
+            template="plotly_white",
             xaxis=dict(
                 title="Feature",
                 tickangle=-60,
@@ -1077,6 +1108,16 @@ def _(xgboost_feature_importance):
                 tickformat=".0%",
                 range=[0, 1],
             ),
+            # Place the legend above the chart so it does not collide with the
+            # secondary y-axis title on the right-hand side.
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+            ),
+            margin=dict(t=90, r=90),
             height=600,
         ),
     )
@@ -1110,13 +1151,14 @@ def _(feature_selected, train_transaction):
             )
             .groupby("feature_bin", observed=True)["isFraud"]
             .agg(["count", "mean"])
+            .rename(columns={"mean": "fraud_rate"})
             .reset_index()
         )
 
         _base_fraud_rate = train_transaction["isFraud"].mean()
 
         _feature_fraud_profile.assign(
-            lift=lambda _df: _df["mean"] / _base_fraud_rate
+            lift=lambda _df: _df["fraud_rate"] / _base_fraud_rate
         )
         _ = _feature_fraud_profile
     except TypeError:
@@ -1132,7 +1174,8 @@ def _(feature_selected, train_transaction):
     _feature_fraud_profile = (
         train_transaction.groupby(_feature, dropna=False)["isFraud"]
         .agg(["count", "mean"])
-        .sort_values("mean", ascending=False)
+        .rename(columns={"mean": "fraud_rate"})
+        .sort_values("fraud_rate", ascending=False)
     )
 
     _feature_fraud_profile.round(3)
@@ -1162,46 +1205,46 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _():
-    # _xgboost_classifier = fitted_full_pipeline.named_steps["classifier"]
-    # _xgboost_preprocessor = fitted_full_pipeline.named_steps["preprocessor"]
+def _(X_test, feature_names, fitted_full_pipeline):
+    _xgboost_classifier = fitted_full_pipeline.named_steps["classifier"]
+    _xgboost_preprocessor = fitted_full_pipeline.named_steps["preprocessor"]
 
-    # _X_shap_sample = X_test.sample(5000, random_state=1423)
-    # X_shap_transformed = _xgboost_preprocessor.transform(_X_shap_sample)
+    _X_shap_sample = X_test.sample(5000, random_state=1423)
+    X_shap_transformed = _xgboost_preprocessor.transform(_X_shap_sample)
 
-    # _explainer = shap.TreeExplainer(_xgboost_classifier)
-    # _shap_values = _explainer(X_shap_transformed)
+    _explainer = shap.TreeExplainer(_xgboost_classifier)
+    _shap_values = _explainer(X_shap_transformed)
 
-    # shap_array = _shap_values.values
+    shap_array = _shap_values.values
 
-    # if shap_array.ndim == 3:
-    #     shap_array = shap_array[:, :, 1]
+    if shap_array.ndim == 3:
+        shap_array = shap_array[:, :, 1]
 
-    # xgboost_shap_importance = pd.DataFrame({
-    #     "feature": feature_names,
-    #     "mean_abs_shap": np.abs(shap_array).mean(axis=0),
-    #     "mean_shap": shap_array.mean(axis=0),
-    # }).sort_values("mean_abs_shap", ascending=False)
+    xgboost_shap_importance = pd.DataFrame({
+        "feature": feature_names,
+        "mean_abs_shap": np.abs(shap_array).mean(axis=0),
+        "mean_shap": shap_array.mean(axis=0),
+    }).sort_values("mean_abs_shap", ascending=False)
 
-    # xgboost_shap_importance.round(3)
-    return
+    xgboost_shap_importance.round(3)
+    return X_shap_transformed, shap_array
 
 
 @app.cell(hide_code=True)
-def _():
-    # X_shap_display = pd.DataFrame(
-    #     X_shap_transformed.toarray()
-    #     if hasattr(X_shap_transformed, "toarray")
-    #     else X_shap_transformed,
-    #     columns=feature_names,
-    # )
+def _(X_shap_transformed, feature_names, shap_array):
+    X_shap_display = pd.DataFrame(
+        X_shap_transformed.toarray()
+        if hasattr(X_shap_transformed, "toarray")
+        else X_shap_transformed,
+        columns=feature_names,
+    )
 
-    # shap.summary_plot(
-    #     shap_array,
-    #     X_shap_display,
-    #     feature_names=feature_names,
-    #     max_display=30,
-    # )
+    shap.summary_plot(
+        shap_array,
+        X_shap_display,
+        feature_names=feature_names,
+        max_display=30,
+    )
     return
 
 
