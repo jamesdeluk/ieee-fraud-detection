@@ -243,7 +243,7 @@ function Overview({
     },
     full: {
       title: "Full model",
-      subtitle: "An extreme gradient boosted tree classifier with 391 features.",
+      subtitle: `An extreme gradient boosted tree classifier with ${formatNumber(metrics.models.full.features_count)} total features.`,
     },
   };
   const performanceRows = [
@@ -502,7 +502,7 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
     },
   ];
 
-  const fullFeatureNotes = [
+  const additionalFeatureNotes = [
     {
       title: "C1-C14",
       body: "Masked count features, such as counts of addresses, devices, IPs, emails, names, or other transaction entities.",
@@ -541,6 +541,9 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
   ];
 
   const identityFeatureCount = 41;
+  // The full model count includes the basic and identity groups shown separately.
+  const additionalFeatureCount =
+    metrics.models.full.features_count - metrics.models.basic.features_count - identityFeatureCount;
 
   return (
     <div className="view-grid">
@@ -607,12 +610,11 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
       <section className="panel column-guide">
         <div className="section-heading">
           <div>
-            <h2>{formatNumber(metrics.models.full.features_count)} full features</h2>
-            <p>All {formatNumber(metrics.models.basic.features_count)} basic features, plus:</p>
+            <h2>{formatNumber(additionalFeatureCount)} additional features</h2>
           </div>
         </div>
         <div className="column-guide-grid">
-          {fullFeatureNotes.map((note) => (
+          {additionalFeatureNotes.map((note) => (
             <article key={note.title}>
               <h3>{note.title}</h3>
               <p>{note.body}</p>
