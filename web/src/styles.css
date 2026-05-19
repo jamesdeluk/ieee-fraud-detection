@@ -302,7 +302,7 @@ button {
 
 .metric-explainer-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -330,6 +330,14 @@ button {
 
 .flow-panel {
   overflow: hidden;
+}
+
+.flow-toggle {
+  flex: 0 0 auto;
+}
+
+.flow-toggle button {
+  white-space: nowrap;
 }
 
 .sankey-wrap {
@@ -548,13 +556,22 @@ button {
   flex-direction: column;
 }
 
+.transaction-heading > div {
+  width: 100%;
+}
+
 .filter-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-start;
   margin-top: 12px;
   width: 100%;
+}
+
+.filter-row select {
+  flex: 1 1 170px;
+  min-width: 0;
 }
 
 .transaction-breakdown-card {
@@ -1094,6 +1111,14 @@ button:disabled {
   }
 
   .overview-control .segmented-control button {
+    flex: 1;
+  }
+
+  .flow-toggle {
+    width: 100%;
+  }
+
+  .flow-toggle button {
     flex: 1;
   }
 

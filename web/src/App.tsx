@@ -57,6 +57,8 @@ const views: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
 
 const TRANSACTION_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 
+type SankeyFlowView = "predictionFirst" | "actualFirst";
+
 function formatNumber(value: number | undefined, maximumFractionDigits = 0) {
   if (value === undefined || Number.isNaN(value)) return "—";
   return new Intl.NumberFormat("en-GB", { maximumFractionDigits }).format(value);
@@ -254,6 +256,12 @@ function Overview({
       holdout: metricValue(metrics, model, "roc_auc"),
     },
     {
+      metric: "Accuracy",
+      cv: cvValue(metrics, model, "accuracy"),
+      cvStd: cvStdValue(metrics, model, "accuracy"),
+      holdout: metricValue(metrics, model, "accuracy"),
+    },
+    {
       metric: "Average precision",
       cv: cvValue(metrics, model, "average_precision"),
       cvStd: cvStdValue(metrics, model, "average_precision"),
@@ -282,23 +290,27 @@ function Overview({
   const metricDescriptions = [
     {
       metric: "ROC AUC",
-      body: "How well the model ranks fraudulent transactions above genuine ones across all possible alert thresholds.",
+      body: "How well the model ranked fraud above non-fraud across thresholds.",
+    },
+    {
+      metric: "Accuracy",
+      body: "The overall percentage of predictions that were correct.",
     },
     {
       metric: "Average precision",
-      body: "How useful the high-risk queue is when fraud is rare; higher means fraud appears nearer the top of the review list.",
+      body: "How highly real fraud cases rank by predicted fraud probability.",
     },
     {
       metric: "Precision",
-      body: "Of the transactions flagged as fraud at the current threshold, the share that really were fraud.",
+      body: "Of the transactions predicted as fraud, the percentage that really were fraud.",
     },
     {
       metric: "Recall",
-      body: "Of all fraudulent transactions in the holdout set, the share the model actually caught.",
+      body: "Of all fraud cases, the percentage that were predicted as fraud.",
     },
     {
       metric: "F1",
-      body: "A single balance between catching fraud and avoiding wasted reviews from false alerts.",
+      body: "A combined score balancing precision and recall.",
     },
   ];
 
@@ -364,32 +376,72 @@ function ModelToggle({
 }
 
 function HoldoutFlow({ metrics, model }: { metrics: MetricsResponse; model: ModelKey }) {
+  const [flowView, setFlowView] = useState<SankeyFlowView>("predictionFirst");
   const truePositives = confusionCount(metrics, model, "true_positives");
   const trueNegatives = confusionCount(metrics, model, "true_negatives");
   const falsePositives = confusionCount(metrics, model, "false_positives");
   const falseNegatives = confusionCount(metrics, model, "false_negatives");
   const predictedFraud = truePositives + falsePositives;
   const predictedNotFraud = trueNegatives + falseNegatives;
+  const actualFraud = truePositives + falseNegatives;
+  const actualNotFraud = trueNegatives + falsePositives;
   const total = predictedFraud + predictedNotFraud;
-  const sankeyData = {
-    nodes: [
-      { name: "Total holdout", count: total, tone: "neutral" },
-      { name: "Predicted fraud", count: predictedFraud, tone: "fraud" },
-      { name: "Predicted not fraud", count: predictedNotFraud, tone: "notFraud" },
-      { name: "True", count: truePositives, tone: "true", detail: "Caught fraud" },
-      { name: "False", count: falsePositives, tone: "false", detail: "False alert" },
-      { name: "True", count: trueNegatives, tone: "true", detail: "Actual not fraud" },
-      { name: "False", count: falseNegatives, tone: "false", detail: "Missed fraud" },
-    ],
-    links: [
-      { source: 0, target: 1, value: predictedFraud, tone: "fraud" },
-      { source: 0, target: 2, value: predictedNotFraud, tone: "notFraud" },
-      { source: 1, target: 3, value: truePositives, tone: "true" },
-      { source: 1, target: 4, value: falsePositives, tone: "false" },
-      { source: 2, target: 5, value: trueNegatives, tone: "true" },
-      { source: 2, target: 6, value: falseNegatives, tone: "false" },
-    ],
-  };
+  const sankeyData = useMemo(() => {
+    // Both views are built from the same confusion matrix; only the story order changes.
+    if (flowView === "actualFirst") {
+      return {
+        nodes: [
+          { name: "Total holdout", count: total, tone: "neutral" },
+          { name: "Actual fraud", count: actualFraud, tone: "fraud" },
+          { name: "Actual not fraud", count: actualNotFraud, tone: "notFraud" },
+          { name: "Predicted fraud", count: truePositives, tone: "true", detail: "Caught fraud" },
+          { name: "Predicted not fraud", count: falseNegatives, tone: "false", detail: "Missed fraud" },
+          { name: "Predicted fraud", count: falsePositives, tone: "false", detail: "False alert" },
+          { name: "Predicted not fraud", count: trueNegatives, tone: "true", detail: "Correctly ignored" },
+        ],
+        links: [
+          { source: 0, target: 1, value: actualFraud, tone: "fraud" },
+          { source: 0, target: 2, value: actualNotFraud, tone: "notFraud" },
+          { source: 1, target: 3, value: truePositives, tone: "true" },
+          { source: 1, target: 4, value: falseNegatives, tone: "false" },
+          { source: 2, target: 5, value: falsePositives, tone: "false" },
+          { source: 2, target: 6, value: trueNegatives, tone: "true" },
+        ],
+      };
+    }
+
+    return {
+      nodes: [
+        { name: "Total holdout", count: total, tone: "neutral" },
+        { name: "Predicted fraud", count: predictedFraud, tone: "fraud" },
+        { name: "Predicted not fraud", count: predictedNotFraud, tone: "notFraud" },
+        { name: "True", count: truePositives, tone: "true", detail: "Caught fraud" },
+        { name: "False", count: falsePositives, tone: "false", detail: "False alert" },
+        { name: "True", count: trueNegatives, tone: "true", detail: "Actual not fraud" },
+        { name: "False", count: falseNegatives, tone: "false", detail: "Missed fraud" },
+      ],
+      links: [
+        { source: 0, target: 1, value: predictedFraud, tone: "fraud" },
+        { source: 0, target: 2, value: predictedNotFraud, tone: "notFraud" },
+        { source: 1, target: 3, value: truePositives, tone: "true" },
+        { source: 1, target: 4, value: falsePositives, tone: "false" },
+        { source: 2, target: 5, value: trueNegatives, tone: "true" },
+        { source: 2, target: 6, value: falseNegatives, tone: "false" },
+      ],
+    };
+  }, [
+    actualFraud,
+    actualNotFraud,
+    falseNegatives,
+    falsePositives,
+    flowView,
+    predictedFraud,
+    predictedNotFraud,
+    total,
+    trueNegatives,
+    truePositives,
+  ]);
+  const flowLabel = flowView === "predictionFirst" ? "Predictions first" : "Actuals first";
 
   return (
     <section className="panel flow-panel">
@@ -397,9 +449,23 @@ function HoldoutFlow({ metrics, model }: { metrics: MetricsResponse; model: Mode
           <div>
             <h2>Holdout decision flow</h2>
           </div>
+          <div className="segmented-control flow-toggle" aria-label="Holdout flow order">
+            <button
+              className={flowView === "predictionFirst" ? "active" : ""}
+              onClick={() => setFlowView("predictionFirst")}
+            >
+              Predictions first
+            </button>
+            <button
+              className={flowView === "actualFirst" ? "active" : ""}
+              onClick={() => setFlowView("actualFirst")}
+            >
+              Actuals first
+            </button>
+          </div>
         </div>
 
-      <div className="sankey-wrap" role="img" aria-label="Holdout rows split from total to model predictions and true or false outcomes">
+      <div className="sankey-wrap" role="img" aria-label={`Holdout rows split from total by ${flowLabel.toLowerCase()}`}>
         <ResponsiveContainer width="100%" height={460}>
           <Sankey
             data={sankeyData}
