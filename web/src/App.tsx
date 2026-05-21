@@ -637,6 +637,18 @@ function DataView({ metrics }: { metrics: MetricsResponse }) {
             fraud; a lower threshold catches more fraud at the cost of more false positives.
           </p>
         </article>
+        <article className="about-writeup">
+          <p>
+            See the full project write-up at{" "}
+            <a
+              href="https://www.jamesgibbins.com/ieee-fraud-detection-console/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://www.jamesgibbins.com/ieee-fraud-detection-console/
+            </a>
+          </p>
+        </article>
       </section>
 
       <section className="panel data-intro">

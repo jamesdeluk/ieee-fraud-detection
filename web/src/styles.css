@@ -524,6 +524,14 @@ button {
   background: var(--surface-muted);
 }
 
+.about-writeup {
+  grid-column: 1 / -1;
+}
+
+.about-writeup p {
+  margin-top: 0;
+}
+
 .about-columns h3 {
   font-size: 15px;
 }
